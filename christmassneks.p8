@@ -3,14 +3,25 @@ version 29
 __lua__
 --entry in #toyboxjam #tbj2020
 --code and game design by jenny schmidt (bikibird)
---in honor of max tojoby, friend 
+--uses assets from toy box jam 2020
+
+--in honor of max tojoby, friend
+ 
 black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 left,right,up,down,fire1,fire2=0,1,2,3,4,5
-becalmed,tail=6,7
+becalmed=6
+buttons={}
+buttons[1]=left; buttons[2]=right; buttons[4]=up; buttons[8]=down
 bulb_colors={green,red,blue,yellow}
+bulb_blink={dark_green,pink,dark_blue,brown}
+sparks={black,black,black,yellow}
+flash_pattern={0,1,4}
+crackle_pattern={0,39}
 -->8
 --initialize
 function _init()
+	reverse=false
+	express=false
 	tracks={}
 	for i=0,15 do
 		tracks[i]={}
@@ -32,9 +43,55 @@ function _init()
 	tracks[13][9]=right; tracks[13][10]=right;tracks[13][11]=right; tracks[13][12]=right; tracks[13][13]=right; tracks[13][14]=right; tracks[13][15]=up; 
 	tracks[14][6]=down; tracks[14][9]=up
 	tracks[15][6]=right; tracks[15][7]=right; tracks[15][8]=right; tracks[15][9]=up
+
+	reverse_tracks={}
+	for i=0,15 do
+		reverse_tracks[i]={}
+	end
+	reverse_tracks[0][6]=right; reverse_tracks[0][7]=right; reverse_tracks[0][8]=right; reverse_tracks[0][9]=down;
+	reverse_tracks[1][6]=up; reverse_tracks[1][9]=down; 
+	reverse_tracks[2][6]=up; reverse_tracks[2][9]=down; 
+	reverse_tracks[3][4]=right; reverse_tracks[3][5]=right; reverse_tracks[3][6]=up; reverse_tracks[3][9]=right; reverse_tracks[3][10]=right; reverse_tracks[3][11]=down;
+	reverse_tracks[4][4]=up; reverse_tracks[4][11]=down;
+	reverse_tracks[5][4]=up; reverse_tracks[5][11]=down;
+	reverse_tracks[6][2]=right; reverse_tracks[6][3]=right; reverse_tracks[6][4]=up; reverse_tracks[6][11]=right; reverse_tracks[6][12]=right; reverse_tracks[6][13]=down; 
+	reverse_tracks[7][2]=up; reverse_tracks[7][13]=down
+	reverse_tracks[8][2]=up; reverse_tracks[8][13]=down
+	reverse_tracks[9][0]=right; reverse_tracks[9][1]=right; reverse_tracks[9][2]=up; reverse_tracks[9][13]=right; reverse_tracks[9][14]=right; reverse_tracks[9][15]=down;
+	reverse_tracks[10][0]=up; reverse_tracks[10][15]=down
+	reverse_tracks[11][0]=up; reverse_tracks[11][15]=down
+	reverse_tracks[12][0]=up; reverse_tracks[12][15]=down
+	reverse_tracks[13][0]=up; reverse_tracks[13][1]=left; reverse_tracks[13][2]=left; reverse_tracks[13][3]=left; reverse_tracks[13][4]=left; reverse_tracks[13][5]=left; reverse_tracks[13][6]=left;
+	reverse_tracks[13][9]=down; reverse_tracks[13][10]=left; reverse_tracks[13][11]=left; reverse_tracks[13][12]=left; reverse_tracks[13][13]=left; reverse_tracks[13][14]=left; reverse_tracks[13][15]=left; 
+	reverse_tracks[14][6]=up; reverse_tracks[14][9]=down
+	reverse_tracks[15][6]=up; reverse_tracks[15][7]=left; reverse_tracks[15][8]=left; reverse_tracks[15][9]=left
+
+	derail={}
+	for i=0,15 do
+		derail[i]={}
+	end
+	derail[0][6]={8,8,right,down}; derail[0][7]={0,8,down,down}; derail[0][8]={0,8,down,down}; derail[0][9]={-8,8,left,down};
+	derail[1][6]={8,0,right,right}; derail[1][9]={-8,0,left,left}; 
+	derail[2][6]={8,0,right,right}; derail[2][9]={-8,0,left,left}; 
+	derail[3][4]={8,8,right,down}; derail[3][5]={0,8,down,down}; derail[3][6]={0,8,right,down}; derail[3][9]={-8,8,left,down}; derail[3][10]={0,8,down,down}; derail[3][11]={-8,8,right,down};
+	derail[4][4]={8,0,right,right}; derail[4][11]={-8,0,left,left};
+	derail[5][4]={8,0,right,right}; derail[5][11]={-8,0,left,left};
+	derail[6][2]={8,8,right,down}; derail[6][3]={0,8,down,down}; derail[6][4]={8,8,right,down}; derail[6][11]={-8,8,left,down}; derail[6][12]={0,8,down,down}; derail[6][13]={-8,8,left,down}; 
+	derail[7][2]={8,0,right,right}; derail[7][13]={-8,0,left,left}
+	derail[8][2]={8,0,right,right}; derail[8][13]={-8,0,left,left}
+	derail[9][0]={8,8,right,down}; derail[9][1]={0,8,down,down}; derail[9][2]={8,8,right,down}; derail[9][13]={-8,8,left,down}; derail[9][14]={0,8,down,down}; derail[9][15]={-8,8,left,down};
+	derail[10][0]={8,0,right,right}; derail[10][15]={-8,0,left,left}
+	derail[11][0]={8,0,right,right}; derail[11][15]={-8,0,left,left}
+	derail[12][0]={8,0,right,right}; derail[12][15]={-8,0,left,left}
+	derail[13][0]={8,-8,right,up}; derail[13][1]={0,-8,up,up}; derail[13][2]={0,-8,up,up}; derail[13][3]={0,-8,up,up}; derail[13][4]={0,-8,up,up}; derail[13][5]={0,-8,up,up}; derail[13][6]={8,-8,right,up};
+	derail[13][9]={-8,-8,up,left}; derail[13][10]={0,-8,up,up}; derail[13][11]={0,-8,up,up}; derail[13][12]={0,-8,up,up}; derail[13][13]={0,-8,up,up}; derail[13][14]={0,-8,up,up}; derail[13][15]={-8,-8,left,up}; 
+	derail[14][6]={8,0,right,right}; derail[14][9]={-8,0,left,left}
+	derail[15][6]={8,-8,up,right}; derail[15][7]={0,-8,up,up}; derail[15][8]={0,-8,up,up}; derail[15][9]={-8,-8,left,up}
+
+	flash_wait=.1
+	flash_time=time()
+	gameover=false
 	init_stars()
-	--init_snek_yard()
-	
 	init_forest()
 	_draw = draw_intro
 	_update = update_intro
@@ -43,15 +100,17 @@ function init_bulbs()
 	bulbs={}
 	for i=0,3 do
 		local bulb=get_empty_cell()
-		bulb.s=flr(rnd(4))*5 +4
-		mset(bulb.x,bulb.y,bulb.s)
-		add(bulbs,bulb)
+		if (bulb) then
+			bulb.s=flr(rnd(4))*5 +4
+			mset(bulb.x,bulb.y,bulb.s)
+			add(bulbs,bulb)
+		end	
 	end
 end
 function init_forest()
 	forest={}
-	quasar={x=60,y=30,s={27,28}}
-	pulse=0
+	lights={}
+	quasar={x=60,y=30}
 	planted=false
 end
 
@@ -66,7 +125,7 @@ function init_stars()
 end
 function init_snek()
 	snek={{x=60,y=60,s=flr(rnd(4))*5,aim=becalmed,train=false, wire={x0=64, y0=64, x1=64,y1=64}}}
-	tongue={x0=64,y0=59,x1=64,y1=59}
+	tongue={x=64,y=59,x0=64,y0=59,x1=64,y1=59,x2=64,y2=59,x3=64,y3=59,c0=black,c1=black,c2=black,c3=black,}
 end	
 -->8
 --intro
@@ -118,39 +177,69 @@ end
 -->snek
 function update_snek()
 	if (short==0)then
-		if (boarding) then
-			train_travel(snek[#snek])
-		else		
-			travel(snek[#snek])
-		end	
+		if (express)then
+			express_travel()
+		else	
+			if (boarding) then
+				train_travel(snek[#snek])
+			else		
+				travel(snek[#snek])
+			end	
+		end
 	else
 		short_circuit(snek[#snek])
 	end	
 	update_burnout()
 end
+function express_travel()
+	if (#snek>0)then
+		if(time()-gaze_time>gaze_wait)then
+			if (snek[#snek].y<120) then
+				snek[#snek].y+=2.5
+				if (snek[#snek].y>120)then
+				snek[#snek].y=120
+				end
+				snek[#snek].aim=down
+			elseif (snek[1].x<128) then
+				snek[#snek].x+=2
+				snek[#snek].aim=right
+			end
+			slither()
+			update_tongue(snek[#snek])
+		end	
+		if (snek[#snek].y==120 and snek[1].x> 127) then
+			_update=update_planting
+			_draw=draw_planting	
+			express=false
+			music(-1)
+		else
+			local flash=false
+			if (time()-flash_time > flash_wait) then
+				flash_time=time()
+				offset=(offset+1)%3
+				flash=true
+			end	
+			for bulb in all(snek) do
+				if (flash) then
+					
+					bulb.s=flr(bulb.s/5)*5+flash_pattern[offset+1]
+				end	
+			end	
+		end	
+	else
+		express=false
+	end		
+end
 function train_travel(head)
 	if (head) then
 		local gridx=flr((head.x+3)/8)
 		local gridy=flr((head.y+3)/8)
-	
-		if (btn(down) or btn(up) or btn(left) or btn(right)) then
-			detrain(head)
-		else	
-			head.aim=tracks[gridy][gridx]
-			if (head.aim==left) then
-				head.x-=speed
-				head.y=gridy*8
-				
-			elseif (head.aim==right) then
-				head.x+=speed
-				head.y=gridy*8
-			elseif (head.aim==up) then
-				head.y-=speed
-				head.x=gridx*8
-			elseif (head.aim==down) then	
-				head.y+=speed
-				head.x=gridx*8
-			end
+		local b=btn()
+		if (b>0 and b<16) then
+			detrain(head,buttons[b])
+		end
+		if (boarding)then	
+			ride(#snek,gridx,gridy)
 		end	
 		update_tongue(head)
 		slither()
@@ -163,14 +252,10 @@ function slither()
 		gridy=flr((snek[i].y+3)/8)
 		if (snek[i+1].train)then
 			if(not snek[i].train)then
-				if (fget(mget(gridx,gridy))>4 ) then
+				if (fget(mget(gridx,gridy))>=4 ) then
 					snek[i].train=true
-					snek[i].x=gridx*8
-					snek[i].y=gridy*8
-					--ride(i,gridx,gridy)
-				else
-					social_distance(i,10)
 				end
+					social_distance(i,10)
 			else
 				ride(i,gridx,gridy)	
 				social_distance(i,12)		
@@ -182,18 +267,20 @@ function slither()
 	for i=#snek-1,1,-1 do
 		snek[i].wire={x0=snek[i].x+4,y0=snek[i].y+4,x1=snek[i+1].x+3,y1=snek[i+1].y+3}
 	end
-	for i=#snek-1,1,-1 do
-		if(tongue.x1>=snek[i].x) then
-			if (tongue.x1<snek[i].x+8) then
-				if (tongue.y1>=snek[i].y) then	
-					if(tongue.y1<snek[i].y+8) then
-						short=i
-						break
-					end	
-				end
-			end		
+	if (not express) then
+		for i=#snek-1,1,-1 do
+			if(tongue.x>=snek[i].x) then
+				if (tongue.x<snek[i].x+8) then
+					if (tongue.y>=snek[i].y) then	
+						if(tongue.y<snek[i].y+8) then
+							short=i
+							break
+						end	
+					end
+				end		
+			end
 		end
-	end
+	end	
 end	
 function social_distance(i,distance)
 	dx=snek[i+1].x - snek[i].x
@@ -205,7 +292,13 @@ function social_distance(i,distance)
 	end
 end
 function ride(i,gridx,gridy)
-	aim=tracks[gridy][gridx]
+	local aim
+	if(reverse) then
+		aim=reverse_tracks[gridy][gridx]
+	else	
+		aim=tracks[gridy][gridx]
+	end
+	snek[i].aim=aim
 	if (aim==left) then
 		snek[i].x-=speed
 		snek[i].y=gridy*8
@@ -219,6 +312,8 @@ function ride(i,gridx,gridy)
 		snek[i].y+=speed
 		snek[i].x=gridx*8
 	end	
+	if (i==#snek) then
+	end
 end	
 function travel(head)
 	if (head) then
@@ -243,78 +338,51 @@ function travel(head)
 		update_tongue(head)
 		update_growth(head)
 		update_boarding(head)
-		slither(#snek-1)
+		slither()
 	end
 end
-function detrain(head)
-
-	boarding = false
-	speed=1.5
-	local gridx,gridy,aim,x,y
-	x=head.x
-	y=head.y
+function detrain(head,aim)
+	local gridx,gridy
 	gridx=flr((head.x+3)/8)
 	gridy=flr((head.y+3)/8)
-	while (fget(mget(gridx,gridy))>4) do
-		gridx=flr((head.x+3)/8)
-		gridy=flr((head.y+3)/8)
-		aim=tracks[gridx][gridy]
-		if (head.aim==left) then
-			if(fget(mget(gridx,gridy+1))<4) then
-				head.y=head.y+8
-			else
-				head.y+=speed	
-			end
-		elseif (head.aim==right) then
-			if(fget(mget(gridx,gridy-1))<4) then
-				head.y=head.y-8
-			else
-				head.y-=speed	
-			end	
-		elseif (head.aim==up) then
-			if(fget(mget(gridx-1,gridy))<4) then
-				head.x=head.x-8
-			else
-				head.x-=speed	
-			end	
-		elseif (head.aim==down) then
-			if(fget(mget(gridx+1,gridy))<4) then	
-				head.x=head.x+8
-			else
-				head.x+=speed	
-			end	
+	if (derail[gridy][gridx][3]==aim or derail[gridy][gridx][4]==aim) then
+		boarding = false
+		speed=1.5
+		head.x=gridx*8+derail[gridy][gridx][1]
+		head.y=gridy*8+derail[gridy][gridx][2]
+		head.aim=aim
+		update_tongue(head)
+		for bulb in all(snek) do
+			bulb.train=false
 		end
-	end
-	
-	for bulb in all(snek) do
-		bulb.train=false
-	end
+	end	
 end
 function short_circuit()
 	local head=snek[#snek]
 	if (#snek>=short) then
 		add(burnouts,deli(snek,short))
-		burnouts[#burnouts].wait=.01
+		burnouts[#burnouts].wait=.01+rnd(2)*.01
 		burnouts[#burnouts].time=time()
-	
-		
 	end
 	if (#snek<short) then
 		short=0
 		if (#snek>0) then
 			local new_head=snek[#snek]
 			new_head.aim=head.aim
+			speed=1.5
 			for bulb in all(snek) do
 				bulb.train=false
 			end
 			boarding=false
 			new_head.wire={x0=new_head.x+4, y0=new_head.y+4,x0=new_head.x+4, y0=new_head.y+4}
+			update_tongue(new_head)
+			update_boarding(new_head)
 		end	
 	end	
 end	
 function update_burnout()
 	if (#burnouts>0)then
-		burnout=burnouts[#burnouts]
+		burnout=burnouts[1]
 		if (burnout.s%5==3) then
 			sfx(48)
 		end	
@@ -323,23 +391,38 @@ function update_burnout()
 			burnout.time=time()
 		end	
 		if (burnout.s%5==4)then
-			deli(burnouts,#burnouts)
+			deli(burnouts,1)
 		end	
 		if (#burnouts==0 and #snek==0) then
-			sfx(55)
-			gameover=time()
+			gameover_time=time()
 		end	
 	elseif(#snek==0) then	
-		if (time()-gameover>1) then
-			_update=update_planting
-			_draw=draw_planting
+		local timing=time()-gameover_time
+		if (timing >.4 and timing <.5) then
+			mset(9,13,0)
+			sfx(48)
+		elseif (timing >.5 and timing <.6) then
+			mset(7,7,0)
+			sfx(48)
+		elseif (timing >.6 and timing <.7) then
+			mset(4,3,0)
+			sfx(48)		
+		elseif(timing>1 and timing<5)then
+			for i=0,5 do
+				local gridx=flr(rnd(16))
+				local gridy=flr(rnd(16))
+				mset(gridx,gridy,0)
+				sfx(48)
+			end
+		elseif (timing>5) then
+			gameover=true
 		end	
 	end	
 end
 
 function update_growth(head)
-	local gridx=flr(tongue.x1/8)
-	local gridy=flr(tongue.y1/8)
+	local gridx=flr(tongue.x/8)
+	local gridy=flr(tongue.y/8)
 	if (fget(mget(gridx,gridy))==1) then
 		for i, bulb in pairs(bulbs) do
 			if (bulb.x==gridx and bulb.y == gridy) then
@@ -361,17 +444,22 @@ end
 function update_boarding(head)
 	local gridx=flr((head.x+3)/8)
 	local gridy=flr((head.y+3)/8)
-	
-	if (fget(mget(gridx,gridy))>4 ) then
+	if (fget(mget(gridx,gridy))>=4 ) then
 		if (not boarding) then
 			for bulb in all(snek) do
 				bulb.train=false
 			end
 			boarding = true
+			reverse = not reverse
 			head.train=true
 			head.x=gridx*8
 			head.y=gridy*8
-			head.aim=tracks[gridy][gridx]
+			if(reverse) then
+				head.aim=reverse_tracks[gridy][gridx]
+			else	
+				head.aim=tracks[gridy][gridx]
+			end
+			update_tongue(head)
 			speed=2.5
 		end	
 	else
@@ -379,176 +467,81 @@ function update_boarding(head)
 	end	
 end	
 function update_tongue(head)
-	local step =flr(rnd(5))+3
-	if (frame%step==0) then
-		flick = frame%2
-	end	
 	if (head.aim==up) then
-		if (flick==0) then
-			tongue={x0=head.x+4,y0=head.y-1,x1=head.x+3,y1=head.y-2}
-		else
-			tongue={x0=head.x+3,y0=head.y-1,x1=head.x+4,y1=head.y-2}
-		end
+		tongue={
+			x=head.x+3.5, y=head.y-1,
+			x0=head.x+3.5-flr(rnd(2)), y0=head.y-2-flr(rnd(2)), c0=sparks[flr(rnd(4))+1],
+			x1=head.x+3.5+flr(rnd(2)), y1=head.y-2+flr(rnd(2)), c1=sparks[flr(rnd(4))+1],
+			x2=head.x+3.5-flr(rnd(2)), y2=head.y-2+flr(rnd(2)), c2=sparks[flr(rnd(4))+1],
+			x3=head.x+3.5+flr(rnd(2)), y3=head.y-2-flr(rnd(2)), c3=sparks[flr(rnd(4))+1]
+		}
 	elseif (head.aim==down) then
-		if (flick==0) then
-			tongue={x0=head.x+4,y0=head.y+8,x1=head.x+3,y1=head.y+9}
-		else
-			tongue={x0=head.x+3,y0=head.y+8,x1=head.x+4,y1=head.y+9}
-		end
+		tongue={
+			x=head.x+3.5, y=head.y+8,
+			x0=head.x+3-flr(rnd(2)),y0=head.y+9-flr(rnd(2)), c0=sparks[flr(rnd(4))+1],
+			x1=head.x+4+flr(rnd(2)),y1=head.y+9+flr(rnd(2)), c1=sparks[flr(rnd(4))+1],
+			x2=head.x+3-flr(rnd(2)),y2=head.y+9+flr(rnd(2)), c2=sparks[flr(rnd(4))+1],
+			x3=head.x+4+flr(rnd(2)),y3=head.y+9-flr(rnd(2)), c3=sparks[flr(rnd(4))+1]
+		}
 	elseif (head.aim==left) then
-		if (flick==0) then
-			tongue={x0=head.x-1,y0=head.y+4,x1=head.x-2,y1=head.y+3}
-		else
-			tongue={x0=head.x-1,y0=head.y+3,x1=head.x-2,y1=head.y+4}
-		end
+		tongue={
+			x=head.x-1, y=head.y+3.5,
+			x0=head.x-2-flr(rnd(2)), y0=head.y+3-flr(rnd(2)), c0=sparks[flr(rnd(4))+1],
+			x1=head.x-2+flr(rnd(2)), y1=head.y+4+flr(rnd(2)), c1=sparks[flr(rnd(4))+1],
+			x2=head.x-2+flr(rnd(2)), y2=head.y+3-flr(rnd(2)), c2=sparks[flr(rnd(4))+1],
+			x3=head.x-2-flr(rnd(2)), y3=head.y+4+flr(rnd(2)), c3=sparks[flr(rnd(4))+1]
+		}
 	elseif (head.aim==right) then
-		if (flick==0) then
-			tongue={x0=head.x+8,y0=head.y+4,x1=head.x+10,y1=head.y+3}
-		else
-			tongue={x0=head.x+8,y0=head.y+3,x1=head.x+10,y1=head.y+4}
-		end
-	end
+		tongue={
+			x=head.x+8, y=head.y+3.5,
+			x0=head.x+9-flr(rnd(2)), y0=head.y+3-flr(rnd(2)), c0=sparks[flr(rnd(4))+1],
+			x1=head.x+9+flr(rnd(2)), y1=head.y+4+flr(rnd(2)), c1=sparks[flr(rnd(4))+1],
+			x2=head.x+9+flr(rnd(2)), y2=head.y+3-flr(rnd(2)), c2=sparks[flr(rnd(4))+1],
+			x3=head.x+9-flr(rnd(2)), y3=head.y+4+flr(rnd(2)), c3=sparks[flr(rnd(4))+1]
+		}
 		
+	end
 end
 function draw_snek()
 	
 	for i=1,#snek-1 do
 		local wire=snek[i].wire
-		line(wire.x0,wire.y0,wire.x1,wire.y1)
+		line(wire.x0,wire.y0,wire.x1,wire.y1,dark_purple)
 	end
 	for i=1,#snek do
 		spr(snek[i].s,snek[i].x,snek[i].y)	
 	end
 	if (#snek>0) then
-		line(tongue.x0,tongue.y0,tongue.x1,tongue.y1,dark_purple)
+		pset(tongue.x0, tongue.y0,tongue.c0)
+		pset(tongue.x1, tongue.y1,tongue.c1)
+		pset(tongue.x2, tongue.y2,tongue.c2)
+		pset(tongue.x3, tongue.y3,tongue.c3)
 	end	
 	for burnout in all(burnouts) do
 		spr(burnout.s,burnout.x,burnout.y)
 	end
 end	
 -->8
---Planting
-
-function update_planting()
-	update_stars()
-	update_quasar()
-end
-function draw_planting()
-	draw_snowscape()
-	draw_stars()
-	draw_forest()
-	if (gameover) then
-		print("           game over", 0,120, dark_blue)
-	else	
-		draw_quasar()
-		if (not planted) then
-			print("     move quasar, X to plant", 0,120, dark_blue)
-		else	
-			print("        X to build snek", 0,120, dark_blue)
-		end
-	end	
-end
-
--->8
---Forestry
-function plant_tree(x,y,w,h)
-	local tree ={twigs={},lights={}}
-	local dw, branch1, branch2, step
-	step=rnd(1)+2
-	for dh=0,h,step do
-		dw = flr((w/h)*dh)
-		twig1=rnd(3)+1 
-		twig2=rnd(3)+1
-		add(tree.twigs,{x0=x-flr(dw/2),y0=y+dh-twig1,x1=x+ceil(dw/2),y1=y+dh+twig2})
-	end
-	for bulb in all(snek) do
-		add(tree.lights,{x=bulb.x/128*w+(x-w/2) ,y=bulb.y/128*h+y, c=bulb_colors[flr(bulb.s/5)+1]})
-	end
-	planted=true
-	add(forest,tree)
-	sfx(52)
-	
-end
-function draw_forest()
-	
-	for tree in all(forest) do
-		color(dark_green)
-		for twig in all(tree.twigs) do
-			line(twig.x0,twig.y0,twig.x1,twig.y1)
-			line(twig.x0,twig.y1,twig.x1,twig.y0)
-		end	
-		for bulb in all(tree.lights)do
-			pset(bulb.x,bulb.y,bulb.c)
-		end
-	end
-end
-function update_quasar()
-	local step =2 +flr(rnd(3))
-	if (gameover==nil) then
-		if (not planted) then
-			if (frame%step==0) then
-				pulse = frame%2
-			end	
-			if (btn(left)) then
-				quasar.aim=left
-				quasar.x-=1
-				if (quasar.x<-4) then
-					quasar.x=-4
-				end	
-			elseif (btn(right)) then
-				quasar.aim=right
-				quasar.x+=1
-				if (quasar.x>124) then
-					quasar.x=124
-				end
-			elseif (btn(up)) then
-				quasar.aim=up
-				quasar.y-=1
-				if (quasar.y<20) then
-					quasar.y=20
-				end
-			elseif (btn(down)) then
-				quasar.aim=down
-				quasar.y+=1
-				if (quasar.y>120) then
-					quasar.y=120
-				end
-			elseif (btnp(fire2)) then
-				plant_tree(quasar.x+3,quasar.y+8,25,30)
-			end	
-			frame+=1	
-		else 
-			if (btnp(fire2)) then
-				for bulb in all(bulbs) do
-					mset(bulb.x,bulb.y,26)
-				end
-				init_snek_yard()
-				planted=false
-				_update=update_snek_yard
-				_draw=draw_snek_yard	
-			end		
-		end
-	end	
-end
-function draw_quasar()
-	spr(quasar.s[pulse+1],quasar.x,quasar.y)
-end
--->8
---sneks
+--snek yard
 function init_snek_yard()
-	frame=0
-	short=0
 	speed=1.5
+	short=0
+	offset=0
 	burnouts={}
 	boarding=false
 	init_snek()
 	init_bulbs()
 end	
 function update_snek_yard()
-	frame+=1
-	if (btnp(fire2)) then
-		_update=update_planting
-	 	_draw=draw_planting	
+	if (btnp(fire2)and not gameover) then
+		express=true
+		gaze_time=time()
+		gaze_wait=2
+		for bulb in all(snek) do
+			bulb.train=false
+			add(lights,{x=bulb.x,y=bulb.y,c=flr(bulb.s/5)+1})
+		end
+		music(39)
 	end	
 	update_snek()
 	if (#bulbs <4) then
@@ -563,28 +556,32 @@ end
 function draw_snek_yard()
 	cls()
 	map(0,0)
-	print("arrows move", 0, 120)
-	print("X forest",90,120)
-	draw_snek()
+	if (gameover) then
+		print("           game over", 0,56, red)
+		print("         P - play again", 0,64,red)
+	else
+		print("arrows move", 0, 120,dark_purple)
+		print("X forest",90,120,dark_purple)
+		draw_snek()
+	end	
 end
 function get_empty_cell()
 	local gridx=flr(rnd(14)+1)
 	local gridy=flr(rnd(14)+1)
-	local counter =0
-	local flag=fget(mget(gridx,gridy))
+	--local counter =0
 	local snekx=flr(snek[1].x/8)
 	local sneky=flr(snek[1].y/8)
-	while (((fget(mget(gridx,gridy))~=2) or
+	if (((fget(mget(gridx,gridy))~=2) or
 		(fget(mget(gridx-1,gridy))==1) or
 		(fget(mget(gridx+1,gridy))==1) or
 		(fget(mget(gridx,gridy-1))==1) or
 		(fget(mget(gridx,gridy+1))==1)) or
-		(snek_zone(gridx,gridy)) and counter < 1000
-	) do
-		gridx=flr(rnd(14)+1); gridy=flr(rnd(14)+1)
-		counter+=1
+		(snek_zone(gridx,gridy))) then
+			return (false)
+	else		
+		return {x=gridx,y=gridy}
 	end
-	return {x=gridx,y=gridy}
+	
 end
 function snek_zone(x,y)
 	local gridx0, gridy0, gridx1, gridy1
@@ -625,6 +622,112 @@ function snek_zone(x,y)
 	end
 	return false
 end
+-->8
+--Forestry
+
+function update_planting()
+	update_stars()
+	update_quasar()
+end
+function draw_planting()
+	draw_snowscape()
+	draw_stars()
+	draw_forest()
+	draw_quasar()
+	if (not planted) then
+		print("     move quasar, X to plant", 0,120, dark_blue)
+	else	
+		print("        X to build snek", 0,120, dark_blue)
+	end
+end
+function plant_tree(x,y,w,h)
+	local tree ={twigs={},lights={}}
+	local dw, branch1, branch2, step
+	step=rnd(1)+2
+	for dh=0,h,step do
+		dw = flr((w/h)*dh)
+		twig1=rnd(3)+1 
+		twig2=rnd(3)+1
+		add(tree.twigs,{x0=x-flr(dw/2),y0=y+dh-twig1,x1=x+ceil(dw/2),y1=y+dh+twig2})
+	end
+	for bulb in all(lights) do
+		add(tree.lights,{x=bulb.x/128*w+flr((x-w/2)+.5) ,y=bulb.y/128*h+y, c=bulb.c})
+	end
+	lights={}
+	planted=true
+	add(forest,tree)
+	sfx(52)
+	
+end
+function draw_forest()
+	
+	for tree in all(forest) do
+		color(dark_green)
+		for twig in all(tree.twigs) do
+			line(twig.x0,twig.y0,twig.x1,twig.y1)
+			line(twig.x0,twig.y1,twig.x1,twig.y0)
+		end	
+		for bulb in all(tree.lights)do
+			if (rnd(2)<1) then
+				pset(bulb.x,bulb.y,bulb_colors[bulb.c])
+			else
+				pset(bulb.x,bulb.y,bulb_blink[bulb.c])
+			end	
+		end
+	end
+end
+function update_quasar()
+	local step =2 +flr(rnd(3))
+	if (not planted) then
+		if (btn(left)) then
+			quasar.aim=left
+			quasar.x-=1
+			if (quasar.x<-4) then
+				quasar.x=-4
+			end	
+		elseif (btn(right)) then
+			quasar.aim=right
+			quasar.x+=1
+			if (quasar.x>124) then
+				quasar.x=124
+			end
+		elseif (btn(up)) then
+			quasar.aim=up
+			quasar.y-=1
+			if (quasar.y<20) then
+				quasar.y=20
+			end
+		elseif (btn(down)) then
+			quasar.aim=down
+			quasar.y+=1
+			if (quasar.y>120) then
+				quasar.y=120
+			end
+		elseif (btnp(fire2)) then
+			plant_tree(quasar.x+3,quasar.y+8,25,30)
+		end	
+			
+	else 
+		if (btnp(fire2)) then
+			for bulb in all(bulbs) do
+				mset(bulb.x,bulb.y,26)
+			end
+			init_snek_yard()
+			planted=false
+			_update=update_snek_yard
+			_draw=draw_snek_yard	
+		end		
+	end
+		
+end
+function draw_quasar()
+	if (planted) then
+		spr(28,quasar.x,quasar.y)
+	else	
+		spr(27+flr(rnd(2)),quasar.x,quasar.y)
+	end
+end
+
 
 __gfx__
 000bb00000033000000330000300003000033000000ee00000088000000880000800008000088000000cc0000001100000011000010000100001100000099000
@@ -756,134 +859,134 @@ b039930bbbb33bbb0000000000009a90aaa999aaaaaa99aa944494444444444499444499555d55dd
 00eee40000eeee4000eeee6000eeee00011ff11000eeee0000eeee0000eeee0000eee400004eee0000eeee400eeee00000eeee0000eeee0000eeee0004eeee00
 004000000040040000400460004004004ffffff40040040000400400004004000040000000000400004004000400400000400400004004000040040000000400
 __label__
-dddddddddddddddddmddddddddddddddddddddddddddddddddddddddmdddddddddddmddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddmdddddddmddmdddddddddddddddddddddddddd
-ddmmddddddddddddddddddddddddmdddmdddddddddddddddddddddmmddmmdddddddddmmdddddddddddddddddddddddddddddddddddddddddddddddddddddddmm
-ddddddddddddddddddddddddddddddddddddddddddddddddddmdddmdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-ddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddddddmdddddddddddddddddddmddmddddddmmddddddddddddddmdddddmmmddddddddd
-ddmddddmdddmdddddddddddddddddddddddddddddddddddddddddmddddddddddddddddddddmdddmmdddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddmddddddddddddddddddddddmdddddddddddddddddddddddddddddddddddddddddmddddddddddddddddddddd
-dddddddddddddddddmdddmddddddddddddddddddddddddddddddddddddddddddddddmddddddddddddmmddmmddddddmmdmddddddddddddddddddddddddddddddd
-ddddddddddddddddddddddddddddddddddddddddmddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddddddddddddddmmd
-mdddmdddddddddddddddddddddddddddmddddddddddddddddddddddddddddddddddddmdddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddddddddddddddddddddmddddddddddddddddddd
-dmmddmmddmmdmddddddddddddmdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddmddddddddddddmddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-ddddddddddddddddddddddddddddddddddddddddddddddddddddddmdmdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmmdddddddd
-dddmdmdmddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmddmddddddddmddddddddddddddddddddddddddddd
-ddmddddddddddddddddddddddddddddddddddddmddddddddddddddddddddddddddmdddddddddddddddddddddddddddddddddddmdddddddddddddddddddddddmd
-dddmdmdddddddmdmddddddddddddddmdddmdddddddddddddddddddddddddddddddddmdddddddddddddddddddddddmdddddddddddddddmddddddddddddddddddd
-ddddddddddddmdddmdddddddddddmdmdmdmddddddddddmdddddddddddddmddddddmdddddddddmdddmdddddddmdmddddddddddddddddddddddddddddddddddddd
-ddddmddddddddddddddddddddddddddddddddddddddddmddddddddddddmdddddddddddddddddmdddddddddddddddddddddmdddddddddddddddddddddddmddddd
-ddddddddddddddddddmdmdmdmdmdmdmdmdmddmddmdmddddddddddmdddddddddddddddddddddddddddddddddddddddddddddddmdddddddddddddddddddddddddd
-mdddmdddmddddddddddddddddddddddddddddddddddddmdddddddddddddddddddddddddddddddddddddddddddddddddddddmddmmdddmdmdddddddddddddddddd
-ddddddddddddddddddmdddddddmdddddddddddddddddmdddddddddddddddmdmdmdddmdddddddddddddddddmdddddddmdddddddddddddmddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddmdddmddddddddddddddmdddmddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddmdddddddmdd
-ddddddddddddddddddddddddmdddmdddddddddddmddddmddddmddmdddmdddmddddddddddmdddddddddddddddmdddmdddmdddddddmddddddddmdddddddddddddd
-mdddddddddddddddddddddddddddddddddddddddddddmddddddddddddddddddddddddddddddddddddddddddddmdddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-ddddddddddddddddmmdmdmdddmdddmddddmddmddddmdmmddmdmmdmdmdmdmdmmdddmddddddmdddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+00000000000000000000000000000000000000000000000000009999999999999999999999990000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000094444444444444444444444449000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000944000055005500550055000044900000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000009440000045004500450045000004490000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000099454000045004500450045000045499000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094405400045004500450045000450449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000544444444444444444444500049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049999999999999999994000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000000300000003094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094544449030000000300000094544449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094555549000003000000030094555549000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000300000003000094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049300000003000000094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094544449000000030000000394544449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094555549030000000300000094555549000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000030000000300094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000000300000003094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094544449030000000300000094544449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094555549000003000000030094555549000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000300000003000094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049300000003000000094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094544449000000030000000394544449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094555549030000000300000094555549000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000030000000300094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000099999999999994000049000000300000003094000049999999999999000000000000000000000000000000000000
+00000000000000000000000000000000000944444444444444500049030000000300000094000544444444444444900000000000000000000000000000000000
+00000000000000000000000000000000009440000550055000450449000003000000030094405400055005500004490000000000000000000000000000000000
+00000000000000000000000000000000094400000450045000045499000300000003000099454000045004500000449000000000000000000000000000000000
+00000000000000000000000000000000994540000450045000004490300000003000000009440000045004500004549900000000000000000000000000000000
+00000000000000000000000000000000944054000450045000044900000000030000000300944000045004500045044900000000000000000000000000000000
+00000000000000000000000000000000940005444444444444449000030000000300000000094444444444444450004900000000000000000000000000000000
+00000000000000000000000000000000940000499999999999990000000030000000300000009999999999999400004900000000000000000000000000000000
+00000000000000000000000000000000940000490000003000000030000000300000003000000030000000309400004900000000000000000000000000000000
+00000000000000000000000000000000945444490300000003000000030000000300000003000000030000009454444900000000000000000000000000000000
+00000000000000000000000000000000945555490000030000000300000003000000030000000300000003009455554900000000000000000000000000000000
+00000000000000000000000000000000940000490003000000030000000300000003000000030000000300009400004900000000000000000000000000000000
+00000000000000000000000000000000940000493000000030000000300000003000000030000000300000009400004900000000000000000000000000000000
+00000000000000000000000000000000945444490000000300000003000000030000000300000003000000039454444900000000000000000000000000000000
+00000000000000000000000000000000945555490300000003000000030000000300000003000000030000009455554900000000000000000000000000000000
+00000000000000000000000000000000940000490000300000003000000030000000300000003000000030009400004900000000000000000000000000000000
+00000000000000000000000000000000940000490000003000000030000000300000003000000030000000309400004900000000000000000000000000000000
+00000000000000000000000000000000945444490300000003000000030000000300000003000000030000009454444900000000000000000000000000000000
+00000000000000000000000000000000945555490000030000000300000003000000030000000300000003009455554900000000000000000000000000000000
+00000000000000000000000000000000940000490003000000030000000300000003000000030000000300009400004900000000000000000000000000000000
+00000000000000000000000000000000940000493000000030000000300000003000000030000000300000009400004900000000000000000000000000000000
+00000000000000000000000000000000945444490000000300000003000000030000000300000003000000039454444900000000000000000000000000000000
+00000000000000000000000000000000945555490300000003000000030000000300000003000000030000009455554900000000000000000000000000000000
+00000000000000000000000000000000940000490000300000003000000030000000300000003000000030009400004900000000000000000000000000000000
+000000000000000000009999999999999400004900000030cc00003000cc00300000003000000030000000309400004999999999999900000000000000000000
+00000000000000000009444444444444445000490300001c77c100001c77c1000300000003000000030000009400054444444444444490000000000000000000
+0000000000000000009440000550055000450449000001c7cc7c1301c7cc7c100000030000000300000003009440540005500550000449000000000000000000
+000000000000000009440000045004500004549900020c7c77c7c20c7c77c7c00003ee0000030000000300009945400004500450000044900000000000000000
+000000000000000099454000045004500000449030002c7c77c7c02c7c77c7c0308e77e830000000300000000944000004500450000454990000000000000000
+0000000000000000944054000450045000044900000001c7cc7c1001c7cc7c1228e7ee7e80000003000000030094400004500450004504490000000000000000
+00000000000000009400054444444444444490000300001c77c100001c77c1000e7e77e7e3000000030000000009444444444444445000490000000000000000
+000000000000000094000049999999999999000000003001cc10300001cc10000e7e77e7e0003000000030000000999999999999940000490000000000000000
+000000000000000094000049000000300000003000000030000000300000003008e7ee7e80000030000000300000003000000030940000490000000000000000
+0000000000000000945444490300000003000000030000000300000003000000038e77e82300cc00030000000300000003000000945444490000000000000000
+00000000000000009455554900000300000003000000030000000300000003000008ee80021c77c1000003000000030000000300945555490000000000000000
+00000000000000009400004900030000000300000003000000030000000300000003000001c7cc7c100300000003000000030000940000490000000000000000
+0000000000000000940000493000000030000000300000003000000030000000300000003c7c77c7c00000003000000030000000940000490000000000000000
+0000000000000000945444490000000300000003000000030000000300000003000000030c7c77c7c00000030000000300000003945444490000000000000000
+00000000000000009455554903000000030000000300000003000000030000000300000001c7cc7c130000000300000003000000945555490000000000000000
+000000000000000094000049000030000000300000003000000030000000300000003000001c77c1000030000000300000003000940000490000000000000000
+0000000000000000940000490000003000000030000000300000003000000030000000300001cc10000000300000003000000030940000490000000000000000
+00000000000000009454444903000000030000000300000003000000030000000300000003000020030000000300000003000000945444490000000000000000
+0000000000000000945555490000030000000300000003000000030000000300000003000000032cc00003000000030000000300945555490000000000000000
+000000000000000094000049000300000003000000030000000300000003000000030000000301c77c1300000003000000030000940000490000000000000000
+00000000000000009400004930000000300000003000000030000000300000003000000030001c7cc7c100003000000030000000940000490000000000000000
+0000000000000000945444490000000300000003000000030000000300000003000000030000c7c77c7c00030000000300000003945444490000000000000000
+0000000000000000945555490300000003000000030000000300000003000000030000000300c7c77c7c00000300000003000000945555490000000000000000
+00000000000000009400004900003000000030000000300000003000000030000000300000001c7cc7c130000000300000003000940000490000000000000000
+000099999999999994000049000000300000003000088000000000300000003000000030000001c77c1000300000003000000030940000499999999999990000
+0009444444444444445000490300000003000000088888800300000003000000030000000300001cc10000000300000003000000940005444444444444449000
+0094400005500550004504490000030000000300888ee88800000300000003000000030000000320000003000000030000000300944054000550055000044900
+094400000450045000045499000300000003000088eeee8800030000000300000003000000030200000300000003000000030000994540000450045000004490
+994540000450045000004490300000003000000088eeee88300000003000000030000000300bb200300000003000000030000000094400000450045000045499
+9440540004500450000449000000000300000003888ee88800000003000000030000000303b77b33000000030000000300000003009440000450045000450449
+9400054444444444444490000300000003000000088888800300000003000000030000003b7bb7b3030000000300000003000000000944444444444444500049
+940000499999999999990000000030000000300000088000000030000000300000003000b7b77b7b000030000000300000003000000099999999999994000049
+940000490000003000000030000000300000003000000030000000300000003000000030b7b77b7b000000300003300000000030000000300000003094000049
+9454444903000000030000000300000003000000030000000300000003000000030000003b7bb7b3030000000333333003000000030000000300000094544449
+94555549000003000000030000000300000003000000030000000300000003000000030003b77b3000000300333bb33300000300000003000000030094555549
+94000049000300000003000000030000000300000003000000030000000300000003ee00203bb3000003000033bbbb3300030000000300000003000094000049
+9400004930000000300000003000000030000000300000003000000030000000308e77e8300000003000000033bbbb3330000000300000003000000094000049
+945444490000000300000003000000030000000300000003000000030000000308e7ee7e8000000300000003333bb33300000003000000030000000394544449
+94555549030000000300000003000000030000000300000003000000030000000e7e77e7e3000000030000000333333003000000030000000300000094555549
+94000049000030000000300000003000000030000000300000003000000bb0000e7e77e7e0003000000030000003300000003000000030000000300094000049
+9400004900000030000000300000003000000030000000300000003003b77b3008e7ee7e80000030000000300000003000033000000000300000003094000049
+9454444903000000030000000300000003000000030000000ee000003b7bb7b3238e77e803000000030000000300000003333330030000000300000094544449
+945555490000030000000300000003000000030000000308e77e8300b7b77b7b0008ee80000003000000030000000300333bb333000003000000030094555549
+94000049000300000003000000030000000300000003008e7ee7e802b7b77b7b0003000000030000000300000003000033bbbb33000300000003000094000049
+9400004930000000300000003000000030000000300000e7e77e7e203b7bb7b33000000030000000300000003000000033bbbb33300000003000000094000049
+9454444900000003000000030000000300000003000000e7e77e7e0303b77b3300000003000000030000000300000003333bb333000000030000000394544449
+94555549030000000300000003000000030000000300008e7ee7e800033bb3000300000003000000030000000300000003333330030000000300000094555549
+940000490000300000003000000030000000300000003008e77e8000000030000000300000003000000030000000300000033000000030000000300094000049
+9400004900000030000000300000003000000030000000308ee80030000000300000003000000030000000300000003000000030000000300000003094000049
+94544449030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000094544449
+94555549000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030094555549
+94000049000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000094000049
+94000049300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000094000049
+94544449000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000394544449
+94555549030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000094555549
+94000049000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300094000049
+94000049999999999999999999999999999999999999999999990000000000300000003000009999999999999999999999999999999999999999999994000049
+94000544444444444444444444444444444444444444444444449000030000000300000000094444444444444444444444444444444444444444444444500049
+94405400055005500550055005500550055005500550055000044900000003000000030000944000055005500550055005500550055005500550055000450449
+99454000045004500450045004500450045004500450045000004490000300000003000009440000045004500450045004500450045004500450045000045499
+09440000045004500450045004500450045004500450045000045499300000003000000099454000045004500450045004500450045004500450045000004490
+00944000045004500450045004500450045004500450045000450449000000030000000394405400045004500450045004500450045004500450045000044900
+00094444444444444444444444444444444444444444444444500049030000000300000094000544444444444444444444444444444444444444444444449000
+00009999999999999999999999999999999999999999999994000049000030000000300094000049999999999999999999999999999999999999999999990000
+00000000000000000000000000000000000000000000000094000049000000300004400094000049000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094544449030000000444444094544449000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000009455554900000300444aa44494555549000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000940000490003000044aaaa4494000049000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000940000493000000044aaaa4494000049000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000009454444900000003444aa44494544449000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094555549030000000444444094555549000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000094000049000030000004400094000049000000000000000000000000000000000000000000000000
+22202220222002202020022000002220022020202220000094000049999999999999999994000049000000000000000000222002202220222002202220000000
+20202020202020202020200000002220202020202000000094000544444444444444444444500049000000000020200000200020202020200020000200000000
+22202200220020202020222000002020202020202200000094405400055005500550055000450449000000000002000000220020202200220022200200000000
+20202020202020202220002000002020202022202000000099454000045004500450045000045499000000000002000000200020202020200000200200000000
+20202020202022002220220000002020220002002220000009440000045004500450045000004490000000000020200000200022002020222022000200000000
+00000000000000000000000000000000000000000000000000944000045004500450045000044900000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000094444444444444444444444449000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000009999999999999999999999990000000000000000000000000000000000000000000000000000
 
 __gff__
 0000000001000000000100000000010000000001040810204080020000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -906,7 +1009,7 @@ __map__
 000000000000161a1a1600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000001417171500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-010300003c61500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00050000307342b751237511d75117751127510d75108751037310271501713007050c7000a700077000670004700027000170000700007000070000700007000070000700017000070000700007000070000700
 010a1f200c4520c4510c4410c4310c4210c4110c4110c4100c4100c4100c4100c4100c4120c4120c4120c4120c4120c4210c4310c4410c4510c4610c4710c4020c4020c4020c4020c4020c4020c4020c4020c402
 010f00000004400011000001c7141c7151c51510001237040704007011000001c7141c715000001c515237040504405011000001c7141c7152351510001240150204002011000001c7141c715000001c51523714
 010f00000c04300000000001871418715185151c0001c700246150000000000187141871500000185151f7040c04300000000001f7141f7151f715100001f015246150000000000187141871500000245151f714
@@ -969,7 +1072,7 @@ __sfx__
 000100000c0150c0050c005110350c0050c0050c00516055000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005
 00020000071540f163163730b22332643216331c6231861315613136130e6130a61304600000000000000000000000b1010710105101031010110100000000000000000000000000000000000000000000000000
 000100001b5611e06125061010001a0511d0512405100000197411c7412374100700187301b731227310050000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000600002336311000103330400010705107031070513005306041070310705000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+011000000062200622006220062202622026220262202622006220062200622006220262202622026220262200622006220062200622026220262202622026220062200622006220062202622026220262202622
 __music__
 01 02034344
 00 02034344
@@ -1012,3 +1115,4 @@ __music__
 02 1f207a44
 04 22234344
 04 24252644
+
